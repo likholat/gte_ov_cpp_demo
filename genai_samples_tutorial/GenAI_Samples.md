@@ -1,11 +1,16 @@
-# How to build and run OpenVino GenAI samples
+# How to build and run OpenVINO GenAI samples
 
-This tutorial shows how to build and run OpenVino GenAI Chat Sample.
+This tutorial shows how to build and run OpenVINO GenAI Chat Sample.
 
-### 1. Install OpenVIno GenAI
+### 1. Install OpenVINO GenAI
 Download and unzip archive: https://docs.openvino.ai/2024/get-started/install-openvino/install-openvino-genai.html#windows
 
-### 2. Initialize OpenVino environment variables
+```console
+cd <user_home>/Downloads
+curl -L https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/2024.3/windows/openvino_genai_windows_2024.3.0.0_x86_64.zip --output openvino_genai_2024.3.0.0.zip
+```
+
+### 2. Initialize OpenVINO environment variables
 
 ```console
 cd openvino_genai_2024.3.0.0\openvino_genai_windows_2024.3.0.0_x86_64

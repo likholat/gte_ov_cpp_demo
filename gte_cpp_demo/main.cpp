@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
         const std::string encoder_path = "../gte-large-ov/openvino_model.xml";
 
         ov::Core core;
-        core.add_extension("libopenvino_tokenizers.so");
+        core.add_extension("openvino_tokenizers.dll");
 
         std::shared_ptr<ov::Model> tokenizer = core.read_model(tokenizer_path);
         std::shared_ptr<ov::Model> text_encoder = core.read_model(encoder_path);
