@@ -10,12 +10,10 @@ int main(int argc, char* argv[]) {
 
         ov::Core core;
         core.add_extension("openvino_tokenizers.dll");
+        core.set_property(ov::cache_dir("../ov_cache"));
 
-        std::shared_ptr<ov::Model> tokenizer = core.read_model(tokenizer_path);
-        std::shared_ptr<ov::Model> text_encoder = core.read_model(encoder_path);
-
-        ov::CompiledModel compiled_tokenizer = core.compile_model(tokenizer, "CPU");
-        ov::CompiledModel compiled_encoder = core.compile_model(text_encoder, "CPU");
+        ov::CompiledModel compiled_tokenizer = core.compile_model(tokenizer_path, "CPU");
+        ov::CompiledModel compiled_encoder = core.compile_model(encoder_path, "CPU");
 
         ov::InferRequest tokenizer_req = compiled_tokenizer.create_infer_request();
         ov::InferRequest encoder_req = compiled_encoder.create_infer_request();
