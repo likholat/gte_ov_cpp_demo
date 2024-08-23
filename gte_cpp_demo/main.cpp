@@ -2,18 +2,27 @@
 #include "openvino/openvino.hpp"
 #include <fstream>
 
-int main(int argc, char* argv[]) {
-    try {
-        std::string test_str = "What is the capital of China?";
+int main(int argc, char *argv[])
+{
+    try
+    {
+        std::string device = "CPU";
+        std::string ov_cache_dir = "../ov_cache";
         const std::string tokenizer_path = "../gte-large-ov/openvino_tokenizer.xml";
-        const std::string encoder_path = "../gte-large-ov/openvino_model.xml";
+        std::string test_str = "how to implement quick sort in python?";
+
+        bool static_model = (device == "NPU") ? true : false;
+        std::string encoder_path = "../gte-large-ov/openvino_model.xml";
+        if (static_model)
+            encoder_path = "../gte-large-ov/static/openvino_model.xml";
 
         ov::Core core;
         core.add_extension("openvino_tokenizers.dll");
-        core.set_property(ov::cache_dir("../ov_cache"));
+
+        core.set_property(ov::cache_dir(ov_cache_dir));
 
         ov::CompiledModel compiled_tokenizer = core.compile_model(tokenizer_path, "CPU");
-        ov::CompiledModel compiled_encoder = core.compile_model(encoder_path, "CPU");
+        ov::CompiledModel compiled_encoder = core.compile_model(encoder_path, device);
 
         ov::InferRequest tokenizer_req = compiled_tokenizer.create_infer_request();
         ov::InferRequest encoder_req = compiled_encoder.create_infer_request();
@@ -25,38 +34,73 @@ int main(int argc, char* argv[]) {
         const ov::Tensor token_type_ids = tokenizer_req.get_output_tensor(1);
         const ov::Tensor attention_mask = tokenizer_req.get_output_tensor(2);
 
-        const ov::Shape input_ids_shape({1, input_ids.get_size()});
-        ov::Tensor input_ids_input(ov::element::i64, input_ids_shape);
-        std::copy_n(input_ids.data<std::int64_t>(), input_ids.get_size(), input_ids_input.data<int64_t>());
+        ov::Tensor input_ids_input;
+        ov::Tensor token_type_ids_input;
+        ov::Tensor attention_mask_input;
 
-        const ov::Shape token_type_ids_shape({1, token_type_ids.get_size()});
-        ov::Tensor token_type_ids_input(ov::element::i64, token_type_ids_shape);
-        std::copy_n(token_type_ids.data<std::int64_t>(), token_type_ids.get_size(), token_type_ids_input.data<int64_t>());
+        if (static_model)
+        {
+            const ov::Shape input_ids_shape({1, encoder_req.get_input_tensor(0).get_shape()[1]});
+            input_ids_input = ov::Tensor(ov::element::i64, input_ids_shape);
+            std::fill_n(input_ids_input.data<int64_t>(), input_ids_input.get_size(), 0);
+            std::copy_n(input_ids.data<std::int64_t>(), input_ids.get_size(), input_ids_input.data<int64_t>());
 
-        const ov::Shape attention_mask_shape({1, attention_mask.get_size()});
-        ov::Tensor attention_mask_input(ov::element::i64, attention_mask_shape);
-        std::copy_n(attention_mask.data<std::int64_t>(), attention_mask.get_size(), attention_mask_input.data<int64_t>());
+            const ov::Shape attention_mask_shape({1, encoder_req.get_input_tensor(1).get_shape()[1]});
+            attention_mask_input = ov::Tensor(ov::element::i64, attention_mask_shape);
+            std::fill_n(attention_mask_input.data<int64_t>(), attention_mask_input.get_size(), 0);
+            std::copy_n(attention_mask.data<std::int64_t>(), attention_mask.get_size(), attention_mask_input.data<int64_t>());
+
+            const ov::Shape token_type_ids_shape({1, encoder_req.get_input_tensor(2).get_shape()[1]});
+            token_type_ids_input = ov::Tensor(ov::element::i64, token_type_ids_shape);
+            std::fill_n(token_type_ids_input.data<int64_t>(), token_type_ids_input.get_size(), 0);
+            std::copy_n(token_type_ids.data<std::int64_t>(), token_type_ids.get_size(), token_type_ids_input.data<int64_t>());
+        }
+        else
+        {
+            const ov::Shape input_ids_shape({1, input_ids.get_size()});
+            input_ids_input = ov::Tensor(ov::element::i64, input_ids_shape);
+            std::copy_n(input_ids.data<std::int64_t>(), input_ids.get_size(), input_ids_input.data<int64_t>());
+
+            const ov::Shape attention_mask_shape({1, attention_mask.get_size()});
+            attention_mask_input = ov::Tensor(ov::element::i64, attention_mask_shape);
+            std::copy_n(attention_mask.data<std::int64_t>(), attention_mask.get_size(), attention_mask_input.data<int64_t>());
+
+            const ov::Shape token_type_ids_shape({1, token_type_ids.get_size()});
+            token_type_ids_input = ov::Tensor(ov::element::i64, token_type_ids_shape);
+            std::copy_n(token_type_ids.data<std::int64_t>(), token_type_ids.get_size(), token_type_ids_input.data<int64_t>());
+        }
 
         encoder_req.set_tensor("input_ids", input_ids_input);
         encoder_req.set_tensor("attention_mask", attention_mask_input);
         encoder_req.set_tensor("token_type_ids", token_type_ids_input);
         encoder_req.infer();
-        const ov::Tensor text_embeddings = encoder_req.get_output_tensor(0);
 
-        float* text_embeddings_data = text_embeddings.data<float>();
+        ov::Tensor text_embeddings = encoder_req.get_output_tensor(0);
+        if (static_model)
+        {
+            const ov::Shape static_shape = {text_embeddings.get_shape()[0], input_ids.get_shape()[1], text_embeddings.get_shape()[2]};
+            text_embeddings.set_shape(static_shape);
+        }
+        float *text_embeddings_data = text_embeddings.data<float>();
 
         std::ofstream outfile("cpp_res.txt");
-        if (outfile.is_open()) {
+        if (outfile.is_open())
+        {
             for (int i = 0; i < text_embeddings.get_size(); ++i)
                 outfile << text_embeddings_data[i] << " ";
             outfile.close();
             std::cout << "Cpp output saved to cpp_res.txt" << std::endl;
-        } else {
+        }
+        else
+        {
             std::cerr << "Error opening file!" << std::endl;
         }
-
-    } catch (const std::exception& ex) {
-        std::cerr << std::endl << "Exception occurred: " << ex.what() << std::endl << std::flush;
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << std::endl
+                  << "Exception occurred: " << ex.what() << std::endl
+                  << std::flush;
         return EXIT_FAILURE;
     }
 

@@ -9,6 +9,11 @@ pip install -r requirements.txt
 python convert_model.py
 ```
 
+- __For NPU__: To create static model use:
+    ```console
+    python convert_model.py --static
+    ```
+
 ## 2. Install OpenVINO for C++
 
 ### 1. Create an Intel folder in the C:\Program Files (x86)\ directory. 
@@ -54,7 +59,6 @@ curl -L https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/pac
 tar -xf openvino_tokenizers_2024.3.0.zip
 move runtime\bin\intel64\Release\* "C:\Program Files (x86)\Intel\openvino_2024.3.0\runtime\bin\intel64\Release"
 ```
-
 
 ## 4. Configure the Environment
 

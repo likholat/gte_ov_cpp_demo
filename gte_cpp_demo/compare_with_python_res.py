@@ -4,12 +4,16 @@
 from optimum.intel import OVModelForFeatureExtraction
 from transformers import AutoTokenizer
 import numpy as np
+import argparse
+
+parser = argparse.ArgumentParser(description='Download and convert a model.')
+parser.add_argument('--model_id', '-m', type=str, default="Alibaba-NLP/gte-large-en-v1.5")
+parser.add_argument('--input_prompt', '-i', type=str, default="how to implement quick sort in python?")
+args = parser.parse_args()
 
 
-input_texts = ["What is the capital of China?"]
-
-model_path = "Alibaba-NLP/gte-large-en-v1.5"
-tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+input_texts = [args.input_prompt]
+tokenizer = AutoTokenizer.from_pretrained(args.model_id, trust_remote_code=True)
 
 # comment out either AutoModel or OVModel line and compare inference results between PyTorch and OpenVINO
 model = OVModelForFeatureExtraction.from_pretrained("gte-large-ov", trust_remote_code=True)
@@ -22,6 +26,7 @@ batch_dict = tokenizer(
 outputs = model(**batch_dict)
 
 python_data = outputs.last_hidden_state.numpy().flatten()
+
 cpp_data = np.loadtxt("./build/cpp_res.txt")
 
 if len(cpp_data) - len(python_data) == 0:
