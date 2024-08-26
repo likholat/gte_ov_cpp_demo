@@ -6,12 +6,13 @@ int main(int argc, char *argv[])
 {
     try
     {
-        std::string device = "CPU";
+        std::string device = "NPU"; // CPU, GPU or NPU
         std::string ov_cache_dir = "../ov_cache";
         const std::string tokenizer_path = "../gte-large-ov/openvino_tokenizer.xml";
         std::string test_str = "how to implement quick sort in python?";
 
-        bool static_model = (device == "NPU") ? true : false;
+        // bool static_model = (device == "NPU") ? true : false;
+        bool static_model = true;
         std::string encoder_path = "../gte-large-ov/openvino_model.xml";
         if (static_model)
             encoder_path = "../gte-large-ov/static/openvino_model.xml";
