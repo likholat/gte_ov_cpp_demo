@@ -6,17 +6,28 @@ int main(int argc, char *argv[])
 {
     try
     {
-        std::string device = "NPU"; // CPU, GPU or NPU
-        std::string ov_cache_dir = "../ov_cache";
-        const std::string tokenizer_path = "../gte-large-ov/openvino_tokenizer.xml";
-        std::string test_str = "how to implement quick sort in python?";
-        size_t niter = 5;
-
-        // bool static_model = (device == "NPU") ? true : false;
-        bool static_model = true;
+        std::string device = "CPU"; // CPU, GPU or NPU
         std::string encoder_path = "../gte-large-ov/openvino_model.xml";
-        if (static_model)
-            encoder_path = "../gte-large-ov/static/openvino_model.xml";
+        std::string tokenizer_path = "../gte-large-ov/openvino_tokenizer.xml";
+        std::string test_str;
+
+        std::string ov_cache_dir = "../ov_cache";
+        size_t niter = 100;
+
+        if (argc == 4)
+        {
+            encoder_path = argv[1];
+            tokenizer_path = argv[2];
+            device = argv[3];
+        }
+        else if (argc != 1 && argc != 4)
+        {
+            std::cout << "Usage : " << argv[0] << " <path_to_embedding_model> <path_to_tokenizer_model> <device_name>" << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        // bool static_model = true;
+        bool static_model = (device == "NPU") ? true : false;
 
         ov::Core core;
         core.add_extension("openvino_tokenizers.dll");
@@ -28,6 +39,10 @@ int main(int argc, char *argv[])
 
         ov::InferRequest tokenizer_req = compiled_tokenizer.create_infer_request();
         ov::InferRequest encoder_req = compiled_encoder.create_infer_request();
+
+        // default for test: "how to implement quick sort in python?"
+        std::cout << "Input prompt:\n";
+        std::getline(std::cin, test_str);
 
         tokenizer_req.set_input_tensor(ov::Tensor{ov::element::string, {1}, &test_str});
         tokenizer_req.infer();
@@ -95,7 +110,7 @@ int main(int argc, char *argv[])
             for (int i = 0; i < result.get_size(); ++i)
                 outfile << result_data[i] << " ";
             outfile.close();
-            std::cout << "Cpp output saved to cpp_res.txt" << std::endl;
+            std::cout << "\nCpp output saved to cpp_res.txt\n" << std::endl;
         }
         else
         {
@@ -109,6 +124,9 @@ int main(int argc, char *argv[])
         auto end = std::chrono::steady_clock::now();
 
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "Model: " << encoder_path << std::endl;
+        std::cout << "Device: " << device << std::endl;
+        std::cout << "Num of iterations: " << niter << std::endl;
         std::cout << "Mean inference time: " << duration / niter << " ms" << std::endl;
     }
     catch (const std::exception &ex)

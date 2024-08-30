@@ -72,12 +72,24 @@ Open the __Command Prompt__, and run the setupvars.bat batch file to temporarily
 
 ## 5. Build and run C++ sample:
 
+Build the demo:
 ```console
 cd  gte_ov_cpp_demo\gte_cpp_demo
 mkdir build && cd build
 cmake .. && cmake --build . —-config Release
-"Release\gte_sample.exe"
 ```
+
+Run the demo on CPU:
+```console
+"Release\gte_sample.exe" ../gte-large-ov/openvino_model.xml ../gte-large-ov/openvino_tokenizer.xml CPU
+```
+
+Run the demo on NPU:
+```console
+"Release\gte_sample.exe" ../gte-large-ov/static/openvino_model.xml ../gte-large-ov/openvino_tokenizer.xml NPU
+```
+
+- default input prompt used in Python script: `how to implement quick sort in python?`
 
 ## 6. Compare results with Python code:
 
