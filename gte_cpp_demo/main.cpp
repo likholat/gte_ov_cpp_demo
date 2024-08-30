@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
         std::string ov_cache_dir = "../ov_cache";
         const std::string tokenizer_path = "../gte-large-ov/openvino_tokenizer.xml";
         std::string test_str = "how to implement quick sort in python?";
+        size_t niter = 5;
 
         // bool static_model = (device == "NPU") ? true : false;
         bool static_model = true;
@@ -74,21 +75,25 @@ int main(int argc, char *argv[])
         encoder_req.set_tensor("input_ids", input_ids_input);
         encoder_req.set_tensor("attention_mask", attention_mask_input);
         encoder_req.set_tensor("token_type_ids", token_type_ids_input);
+        // Warm up
         encoder_req.infer();
 
         ov::Tensor text_embeddings = encoder_req.get_output_tensor(0);
+        ov::Tensor result(text_embeddings.get_element_type(), text_embeddings.get_shape());
+        text_embeddings.copy_to(result);
+
         if (static_model)
         {
-            const ov::Shape static_shape = {text_embeddings.get_shape()[0], input_ids.get_shape()[1], text_embeddings.get_shape()[2]};
-            text_embeddings.set_shape(static_shape);
+            const ov::Shape static_shape = {result.get_shape()[0], input_ids.get_shape()[1], result.get_shape()[2]};
+            result.set_shape(static_shape);
         }
-        float *text_embeddings_data = text_embeddings.data<float>();
+        float *result_data = result.data<float>();
 
         std::ofstream outfile("cpp_res.txt");
         if (outfile.is_open())
         {
-            for (int i = 0; i < text_embeddings.get_size(); ++i)
-                outfile << text_embeddings_data[i] << " ";
+            for (int i = 0; i < result.get_size(); ++i)
+                outfile << result_data[i] << " ";
             outfile.close();
             std::cout << "Cpp output saved to cpp_res.txt" << std::endl;
         }
@@ -96,6 +101,15 @@ int main(int argc, char *argv[])
         {
             std::cerr << "Error opening file!" << std::endl;
         }
+
+        // Benchmark
+        auto start = std::chrono::steady_clock::now();
+        for (size_t i = 0; i < niter; ++i)
+            encoder_req.infer();
+        auto end = std::chrono::steady_clock::now();
+
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "Mean inference time: " << duration / niter << " ms" << std::endl;
     }
     catch (const std::exception &ex)
     {
