@@ -79,28 +79,62 @@ mkdir build && cd build
 cmake .. && cmake --build . —-config Release
 ```
 
+Demo usage:
+```console
+"Release\gte_sample.exe" <path_to_embedding_model> <path_to_tokenizer_model> <device_name> <num_of_iterations>
+```
+
+- `path_to_embedding_model`: path to embedding model `.xml` file
+- `path_to_tokenizer_model`: path to tokenizer model `.xml` file
+- `device_name`: `CPU`, `GPU` or `NPU`
+- `num_of_iterations`: `num_of_iterations=0` to generate model output only, `num_of_iterations>0` to run in benchmark mode
+
 Run the demo on CPU:
 ```console
-"Release\gte_sample.exe" ../gte-large-ov/openvino_model.xml ../gte-large-ov/openvino_tokenizer.xml CPU
+"Release\gte_sample.exe" ../gte-large-ov/openvino_model.xml ../gte-large-ov/openvino_tokenizer.xml CPU 0
 ```
 
 Run the demo on NPU:
 ```console
-"Release\gte_sample.exe" ../gte-large-ov/static/openvino_model.xml ../gte-large-ov/openvino_tokenizer.xml NPU
+"Release\gte_sample.exe" ../gte-large-ov/static/openvino_model.xml ../gte-large-ov/openvino_tokenizer.xml NPU 0
 ```
 
 - default input prompt used in Python script: `how to implement quick sort in python?`
 
+As the result demo will produce `gte_ov_cpp_demo\gte_cpp_demo\cpp_res_<device>.txt` file.
+
 ## 6. Compare results with Python code:
 
+To compare C++ demo __CPU__ result with Python Optimum CPU output:
 ```console
 cd ..
-python compare_with_python_res.py
+python compare_with_python_res.py -cpp ./cpp_res_CPU.txt
 ```
 
 Expected output:
+```
+Cosine similarity :  2.7778948030743322e-08
+Mean Squared Error:  2.612026866194886e-12
+```
+
+To compare C++ demo __GPU__ result with Python Optimum CPU output:
 ```console
-Compiling the model to CPU ...
-Output tensors have the same sizes
-Accuracy: 4.886474609300251e-05
+python compare_with_python_res.py -cpp ./cpp_res_GPU.txt
+```
+
+Expected output:
+```
+Cosine similarity :  4.6911470351518325e-05
+Mean Squared Error:  5.341443669158994e-05
+```
+
+To compare C++ demo __NPU__ result with Python Optimum CPU output:
+```console
+python compare_with_python_res.py -cpp ./cpp_res_NPU.txt
+```
+
+Expected output:
+```
+Cosine similarity :  3.3489112992723946e-06
+Mean Squared Error:  3.788536779638944e-06
 ```
